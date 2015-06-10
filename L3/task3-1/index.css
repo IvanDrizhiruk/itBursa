@@ -1,3 +1,11 @@
-* {
-    font-size: 30px;
+#content {
+    border: solid 1px;
+    margin: 10px;
+    padding: 10px;
+    height: 93%;
+    overflow: auto;
+}
+
+#searchArea {
+    margin-left: 12px;
 }

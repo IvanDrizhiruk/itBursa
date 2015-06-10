@@ -7,22 +7,10 @@ function jsonpCallback(data) {
 
   if (data.parse) {
     var text = data.parse.text['*'];
-
-    var newtext = text.replace(/href="\/wiki/g, 'href="http://en.wikipedia.org/wiki');
-
-
-     contentElement.innerHTML = newtext;
+    contentElement.innerHTML = text.replace(/href="\/wiki/g, 'href="http://en.wikipedia.org/wiki');
   } else {
-    contentElement.innerHTML = "Unknowen response";
+    contentElement.innerHTML = "Cannot find the knowledge";
   }
-  //
-  //var aElements = document.querySelectorAll('a');
-  //
-  //[].forEach.call(aElements, function(a) {
-  //  var href = a.href;
-  //  var newhref = href.replace('/wiki', 'http://en.wikipedia.org/wiki')
-  //  a.href = newhref;
-  //});
 
 }
 
