@@ -38,8 +38,6 @@ div {
     text-align: center;
 }
 
-
-
 .row {
     height: 75px;
 }
@@ -54,4 +52,14 @@ div {
 .winner-message {
     font-size: 50px;
     font-weight: bold;
+}
+
+.existing-games {
+    height: 100px;
+    overflow: auto;
+}
+
+.status-message {
+    color: green;
+    font-size: xx-large;
 }
