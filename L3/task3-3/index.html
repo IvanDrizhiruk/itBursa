@@ -4,18 +4,21 @@
     <meta charset="UTF-8">
     <title>JSBursa - задание #2.3</title>
     <link rel="stylesheet" href="index.css">
-    <script src="getWinner.js"></script>
+    <script src="config.js"></script>
     <script src="index.js"></script>
 </head>
 <body>
 <div class="startGame">
-    <p>Введите размер поля <input class="count"></p>
-    <div class="error-message"></div>
-    <button class="generateField">Создать поле</button>
+    <button class="createGame">Создать игру</button>
+    <div class="status-message"></div>
+    <hr/>
+    <h2>Существующие игры</h2>
+    <ul class="existing-games">
+    </ul>
 </div>
 <div class="mainGame">
-    <button class="startNewGame">Начать новую игру</button>
-    <div class="winner-message"></div>
+    <button class="newGame">Сдаться</button>
+    <div class="status-message"></div>
     <div class="field">
     </div>
 </div>
