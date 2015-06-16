@@ -1,5 +1,5 @@
-//(function init() {
-//    'use strict';
+(function init() {
+    'use strict';
     var gameId;
     var playerId;
 
@@ -24,8 +24,8 @@
     var SOCKET = {
         socket :undefined,
         send: function(obj) {
-            console.log('Send throw socket');
-            console.log(obj);
+            //console.log('Send throw socket');
+            //console.log(obj);
             this.socket && this.socket.send(JSON.stringify(obj));
         }
     };
@@ -34,8 +34,8 @@
         try {
             return JSON.parse(line);
         } catch (e) {
-            console.log('Can not parse as json ' + line);
-            console.log(e);
+            //console.log('Can not parse as json ' + line);
+            //console.log(e);
         }
 
         return undefined;
@@ -112,10 +112,11 @@
 
     function newGemeId(gameId) {
         var li = document.createElement('li');
-        li.innerHTML = 'Game_' + gameId;
+        li.innerHTML = gameId;
         li.gameId = gameId;
         li.classList.add('liclass_' + gameId);
-        li.addEventListener('dblclick', joinToGame);
+        //li.addEventListener('dblclick', joinToGame);
+        li.addEventListener('click', joinToGame);
         return li;
     }
 
@@ -178,14 +179,8 @@
         });
     }
 
-    function removeElement(element) {
-        if(element && element.parentElement) {
-            element.parentElement.removeChild(element);
-        }
-    }
-
     function removeGame(id) {
-        removeElement(document.querySelector('.liclass_' + id.replace('.', '\\.')));
+        ELEMENTS.remove(document.querySelector('.liclass_' + id.replace('.', '\\.')));
     }
 
     function handleSocetMessage(message) {
@@ -204,31 +199,31 @@
             default:
             {
                 alert('Some error');
-                console.log('Some error');
-                console.log(message);
+                //console.log('Some error');
+                //console.log(message);
             }
         }
     }
 
     function establishConnection() {
-        try {
+        //try {
             SOCKET.socket = new WebSocket(gameUrls.list);
             SOCKET.socket.onopen = function(error){
-                console.log('Socket is now open.');
-                console.log(error);
+                //console.log('Socket is now open.');
+                //console.log(error);
             };
-            SOCKET.socket.onclose = function(error){
-                console.log('Socket is now closed.');
-                console.log(error);
-            };
-            SOCKET.socket.onerror = function (error) {
-                console.error('There was an un-identified Web Socket error');
-                console.log(error);
-            };
+            //SOCKET.socket.onclose = function(error){
+            //    //console.log('Socket is now closed.');
+            //    //console.log(error);
+            //};
+            //SOCKET.socket.onerror = function (error) {
+            //    console.error('There was an un-identified Web Socket error');
+            //    //console.log(error);
+            //};
             SOCKET.socket.onmessage = handleSocetMessage;
-        } catch (e) {
-            console.error('Sorry, the web socket at "%s" is un-available', url);
-        }
+        //} catch (e) {
+        //    console.error('Sorry, the web socket at "%s" is un-available', url);
+        //}
     }
 
     function onCreateGame() {
@@ -237,6 +232,7 @@
         SEND.POST(gameUrls.newGame, undefined, undefined, function (data, status) {
             if (!data) {
                 showMessage('"Ошибка создания игры');
+                return;
             }
 
             gameId = data.yourId;
@@ -354,14 +350,14 @@
 
 
             remove: function remove(element) {
-                if (element.parentNode) {
+                if (element && element.parentNode) {
                     element.parentNode.removeChild(element);
                 }
             },
             findByClass : function findByClass(className) {
                return document.querySelector('.' + className);
             }
-        }
+        };
 
         ELEMENTS.createGame.addEventListener('click', onCreateGame);
 
@@ -377,5 +373,4 @@
     }
 
     window.addEventListener('load', initApp);
-//})
-//();
+})();
