@@ -136,25 +136,30 @@
             return document.querySelectorAll('.cell')[index -1];
         }
 
-        function listenOfOpponent(callback) {
+        function listenOfOpponent() {
             var headers = {'Game-ID': gameId, 'Player-ID': playerId};
             var callback = function (data, statusCode) {
-                if (200 != statusCode && GAME.status === GAME_STATE.IN_PROGRESS) {
+                if (200 !== statusCode && GAME.status === GAME_STATE.IN_PROGRESS) {
                     SEND.GET(gameUrls.move, headers, callback);
-                    return;
+                  if (504 !== statusCode) {
+                    var message = (data && data.message) || "Неизвестная ошибка";
+                    showMessageInMainGame(message);
+                  }
+
+                  return;
                 }
 
                 var element = findCellByIndex(data.move);
                 element.classList.add(GAME.opositSide);
-                GAME.nowSide = 'x' === GAME.nowSide ? 'o' : 'x'
+                GAME.nowSide = 'x' === GAME.nowSide ? 'o' : 'x';
 
                 if (data && data.win) {
-                    showWinnMessage(data.win);
+                    showMessageInMainGame(data.win);
                     GAME.status = GAME_STATE.ENDED;
                 }
             };
 
-            SEND.GET(gameUrls.move, headers, callback)
+            SEND.GET(gameUrls.move, headers, callback);
         }
 
         function startGameWith(id) {
@@ -176,9 +181,9 @@
                             listenOfOpponent();
                         }
                     } else if (statusCode === 410) {
-                        showMessageInMainGame('Неизвестная ошибка старта игры');
+                      showMessage('Ошибка старта игры: другой игрок не ответил');
                     } else {
-                        showMessageInMainGame('Ошибка старта игры: другой игрок не ответил');
+                      showMessage('Неизвестная ошибка старта игры');
                     }
                 });
         }
@@ -296,13 +301,13 @@
             return element.classList.contains('x','o');
         }
 
-        function showInWinnerField(text) {
-            ELEMENTS.mainGameStatusMessage.innerHTML = text;
-            return null;
-        }
+        //function showInWinnerField(text) {
+        //    ELEMENTS.mainGameStatusMessage.innerHTML = text;
+        //    return null;
+        //}
 
         function showWinnMessage(winner) {
-            showInWinnerField(winner === 'x'
+            showMessageInMainGame(winner === 'x'
                     ? 'Крестик победил'
                     : 'Нолик победил');
         }
@@ -317,6 +322,7 @@
                 if (!isCellElement(element)
                     //|| isGameFinished() //TODO
                     || isFieldUsed(element)) {
+                    showMessageInMainGame("Неизвестная ошибка");
                     return;
                 }
 
@@ -326,9 +332,8 @@
                     {'Game-ID': gameId, 'Player-ID': playerId},
                     function (data, statusCode) {
                         if(statusCode !== 200) {
-
                             var message = (data && data.message) || "Неизвестная ошибка";
-                            showInWinnerField(message);
+                            showMessageInMainGame(message);
 
                             return;
                         }
@@ -336,7 +341,7 @@
                         element.classList.add(GAME.mySide);
 
                         if(data && data.win) {
-                            showWinnMessage(data.win);
+                            showMessageInMainGame(data.win);
                             GAME.status = GAME_STATE.ENDED;
                             return;
                         }
