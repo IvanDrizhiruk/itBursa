@@ -18,7 +18,8 @@
 
         var SEND = {
             POST: postToServer,
-            GET: getToServer
+            GET: getToServer,
+            PUT: putToServer
         };
         var ELEMENTS;
         var SOCKET = {
@@ -64,7 +65,7 @@
             request.addEventListener('readystatechange', function () {
                 if (request.readyState === request.DONE) {
                     var result;
-                    if (request.status === 200 && request.responseText) {
+                    if (request.responseText) {
                         result = safeJSONparse(request.responseText);
                     }
 
@@ -107,6 +108,32 @@
             request.send();
         }
 
+        function putToServer(url, headers, putResultCallback) {
+            var request = new XMLHttpRequest();
+            request.open('PUT', url);
+
+            if(headers) {
+                for(var index in headers) {
+                    request.setRequestHeader(index, headers[index]);
+                }
+            }
+
+            request.addEventListener('readystatechange', function () {
+                if (request.readyState === request.DONE) {
+                    var result;
+                    if (request.status === 200 && request.responseText) {
+                        result = safeJSONparse(request.responseText);
+                    }
+
+                    if (putResultCallback) {
+                        putResultCallback(result, request.status);
+                    }
+                }
+            });
+
+            request.send();
+        }
+
         function joinToGame(event) {
             var targetElement = event.target;
 
@@ -129,7 +156,7 @@
             if (gameId === id) {
                 return;
             }
-            document.querySelector('.existing-games').appendChild(newGemeId(id));
+            ELEMENTS.existingGames.appendChild(newGemeId(id));
         }
 
         function findCellByIndex(index) {
@@ -144,6 +171,8 @@
                   if (504 !== statusCode) {
                     var message = (data && data.message) || "Неизвестная ошибка";
                     showMessageInMainGame(message);
+                    GAME.status = GAME_STATE.ENDED;
+                    ELEMENTS.newGame.innerHTML = 'Новая игра';
                   }
 
                   return;
@@ -156,6 +185,7 @@
                 if (data && data.win) {
                     showMessageInMainGame(data.win);
                     GAME.status = GAME_STATE.ENDED;
+                    ELEMENTS.newGame.innerHTML = 'Новая игра';
                 }
             };
 
@@ -175,15 +205,21 @@
 
                         ELEMENTS.startGame.style.display = 'none';
                         ELEMENTS.mainGame.style.display = 'block';
+                        showMessageInMainGame('');
+                        ELEMENTS.newGame.innerHTML = 'Сдаться';
 
                         GAME.status = GAME_STATE.IN_PROGRESS;
                         if(GAME.mySide !== GAME.nowSide) {
                             listenOfOpponent();
                         }
+
+                        clearBoard();
                     } else if (statusCode === 410) {
                       showMessage('Ошибка старта игры: другой игрок не ответил');
                     } else {
                       showMessage('Неизвестная ошибка старта игры');
+                      ELEMENTS.newGame.innerHTML = 'Новая игра';
+                      GAME.status = GAME_STATE.ENDED;
                     }
                 });
         }
@@ -216,6 +252,10 @@
 
         function establishConnection() {
             //try {
+                if (SOCKET.socket) {
+                    SOCKET.socket.close();
+                }
+
                 SOCKET.socket = new WebSocket(gameUrls.list);
                 SOCKET.socket.onopen = function(error){
                     //console.log('Socket is now open.');
@@ -240,7 +280,7 @@
             ELEMENTS.createGame.disabled = true;
 
             SEND.POST(gameUrls.newGame, undefined, undefined, function (data, status) {
-                if (!data) {
+                if (200 !== status) {
                     showMessage('Ошибка создания игры');
                     ELEMENTS.createGame.disabled = false;
 
@@ -288,6 +328,15 @@
             ELEMENTS.fieldElement.appendChild(fragment);
         }
 
+        function clearBoard() {
+            var cells = document.querySelectorAll('.field .cell');
+            for (var index = 0 ; index <100 ; index ++) {
+                var element = cells[index];
+
+                element.classList.remove('x');
+                element.classList.remove('o');
+            }
+        }
 
         function isCellElement(element) {
             return element.classList.contains('cell');
@@ -305,26 +354,28 @@
         //    ELEMENTS.mainGameStatusMessage.innerHTML = text;
         //    return null;
         //}
-
-        function showWinnMessage(winner) {
-            showMessageInMainGame(winner === 'x'
-                    ? 'Крестик победил'
-                    : 'Нолик победил');
-        }
+        //
+        //function showWinnMessage(winner) {
+        //    showMessageInMainGame(winner === 'x'
+        //            ? 'Крестик победил'
+        //            : 'Нолик победил');
+        //}
 
         function clickOnField(event) {
             var element = event.target;
             var indexInBoard = element.indexInBoard;
 
-            if (GAME.nowSide === GAME.mySide) {
+            showMessageInMainGame('');
+
+            //if (GAME.status === GAME_STATE.IN_PROGRESS && GAME.nowSide === GAME.mySide) {
 
 
-                if (!isCellElement(element)
-                    //|| isGameFinished() //TODO
-                    || isFieldUsed(element)) {
-                    showMessageInMainGame("Неизвестная ошибка");
-                    return;
-                }
+                //if (!isCellElement(element)
+                //    //|| isGameFinished() //TODO
+                //    || isFieldUsed(element)) {
+                //    showMessageInMainGame("Неизвестная ошибка");
+                //    return;
+                //}
 
                 SEND.POST(
                     gameUrls.move,
@@ -335,6 +386,9 @@
                             var message = (data && data.message) || "Неизвестная ошибка";
                             showMessageInMainGame(message);
 
+                            GAME.status = GAME_STATE.ENDED;
+                            ELEMENTS.newGame.innerHTML = 'Новая игра';
+
                             return;
                         }
 
@@ -343,6 +397,8 @@
                         if(data && data.win) {
                             showMessageInMainGame(data.win);
                             GAME.status = GAME_STATE.ENDED;
+                            ELEMENTS.newGame.innerHTML = 'Новая игра';
+
                             return;
                         }
 
@@ -350,6 +406,49 @@
                         listenOfOpponent();
                     })
 
+            //}
+        }
+
+        function clickOnNewGame() {
+            if(GAME.status === GAME_STATE.ENDED) {
+                ELEMENTS.startGame.style.display = 'block';
+                ELEMENTS.mainGame.style.display = 'none';
+                ELEMENTS.createGame.disabled = false;
+                showMessage('');
+                GAME.status = GAME_STATE.INITIALIZE;
+
+                ELEMENTS.existingGames.innerHTML = '';
+                establishConnection();
+
+                gameId = undefined;
+                playerId = undefined;
+
+            } else {
+                var headers = {'Game-ID': gameId, 'Player-ID': playerId};
+                SEND.PUT(gameUrls.surrender, headers, function (data, statusCode) {
+                    if (200 === statusCode) {
+                        ELEMENTS.startGame.style.display = 'block';
+                        ELEMENTS.mainGame.style.display = 'none';
+                        ELEMENTS.createGame.disabled = false;
+                        showMessage('');
+                        GAME.status = GAME_STATE.INITIALIZE;
+
+                        ELEMENTS.existingGames.innerHTML = '';
+                        establishConnection();
+
+                        gameId = undefined;
+                        playerId = undefined;
+                        GAME.mySide = undefined;
+                        GAME.nowSide = 'x';
+
+                    } else {
+                        var message = (data && data.message) || "Неизвестная ошибка";
+                        showMessageInMainGame(message);
+
+                        GAME.status = GAME_STATE.ENDED;
+                        ELEMENTS.newGame.innerHTML = 'Новая игра';
+                    }
+                });
             }
         }
 
@@ -361,6 +460,8 @@
                 createGame: document.querySelector('.createGame'),
                 fieldElement:  document.querySelector('.field'),
                 mainGameStatusMessage: document.querySelector('.mainGame .status-message'),
+                newGame: document.querySelector('.newGame'),
+                existingGames: document.querySelector('.existing-games'),
 
 
                 remove: function remove(element) {
@@ -378,6 +479,8 @@
             createBoard();
 
             ELEMENTS.fieldElement.addEventListener('click', clickOnField);
+
+            ELEMENTS.newGame.addEventListener('click', clickOnNewGame);
         }
 
         function initApp() {
