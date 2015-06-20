@@ -9,26 +9,72 @@
 
   User.prototype.getStrikesCount = function getStrikesCount() {
     return this.strikes;
-  }
+  };
+
+
+  User.prototype.remove = function remove(removeCallBack) {
+    jQuery.ajax({
+      url: window.crudURL + '/' + this.id,
+      type: 'DELETE',
+      dataType: 'json',
+      success: function () {
+        removeCallBack(undefined);
+      }
+    }).fail(function (error) {
+      removeCallBack(error);
+    });
+  };
+
+
 
   User.prototype.save = function save(saveCallback) {
-    var user = {};
 
-    $.extend(user, this);
+    var thisUser = this;
 
-    $.ajax({
-      url: window.crudURL,
-      data: JSON.stringify(user),
-      success: function () {
-        saveCallback(undefined);
-      },
-      dataType: 'json',
-      type: 'PUT'
-    }).fail(function (error) {
-      saveCallback(error)
-    });
+    console.log(this);
+    if(this.id) {
+      $.ajax({
+        url: window.crudURL + '/' + this.id,
+        type: 'PUT',
+        dataType: 'json',
+        data: JSON.stringify(thisUser),
+        processData: false,
+        success: function (responseObj) {
+          saveCallback(undefined);
 
-  }
+          if(thisUser.role == 'Admin') {
+            $.ajax({
+              url: window.crudURL + '/refreshAdmins',
+              type: 'GET'});
+          }
+        }
+      }).fail(function (error) {
+        saveCallback(error)
+      });
+    } else {
+      $.ajax({
+        url: window.crudURL,
+        type: 'POST',
+        dataType: 'json',
+        processData: false,
+        data: JSON.stringify(thisUser),
+        success: function (responseObj) {
+
+          $.extend(thisUser, responseObj);
+
+          if(thisUser.role == 'Admin') {
+            $.ajax({
+              url: window.crudURL + '/refreshAdmins',
+              type: 'GET'});
+          }
+
+          saveCallback(undefined);
+        }
+      }).fail(function (error) {
+        saveCallback(error)
+      });
+    }
+  };
 
   User.load = function (loadCallback) {
     $.get(window.crudURL, function (data) {
@@ -46,24 +92,32 @@
     });
   };
 
-  // Sudent
-  function Student() {
+  // Student
+  function Student(data) {
     console.log("ISD Student");
+    $.extend(this, data);
   };
 
   Student.prototype = Object.create(User.prototype);
 
   // Support
-  function Support() {
+  function Support(data) {
     console.log("ISD Support");
+    $.extend(this, data);
   }
 
   Support.prototype = Object.create(User.prototype);
+  // Admin
+  function Admin(data) {
+    console.log("ISD Admin");
+    $.extend(this, data);
+  }
 
-
+  Admin.prototype = Object.create(User.prototype);
   //-------------------------------------------
 
   window.User = User;
   window.Student = Student;
   window.Support = Support;
+  window.Admin = Admin;
 })();
