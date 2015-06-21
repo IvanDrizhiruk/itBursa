@@ -1,6 +1,56 @@
 (function () {
   'use strict';
 
+  var UTILS = {
+    send: function (address, type, data, callback) {
+      var request = new XMLHttpRequest();
+      request.open(type, address);
+      request.setRequestHeader('Content-type', 'application/json');
+      request.addEventListener('readystatechange', function addEventListenerCb1() {
+        var data;
+        if (request.readyState === request.DONE) {
+          if (request.responseText) {
+            data = UTILS.safeJSONparse(request.responseText);
+          }
+
+          var isError = request.status !== 200 && request.status !== 204;
+          callback && callback(isError, data);
+        }
+      });
+
+      if(data) {
+        request.send(UTILS.safeJSONparse(data));
+      }else {
+        request.send();
+      }
+    },
+
+    sendGet: function (address, callback) {
+      UTILS.send(address, 'GET', undefined, callback);
+    },
+
+    sendPut: function (address, data, callback) {
+      UTILS.send(address, 'PUT', data, callback);
+    },
+
+    sendPost: function (address, data, callback) {
+      UTILS.send(address, 'POST', data, callback);
+    },
+
+    sendDelete: function (address, callback) {
+      UTILS.send(address, 'DELETE', undefined, callback);
+    },
+
+
+    safeJSONparse: function safeJSONparse(line) {
+      try {
+        return JSON.parse(line);
+      } catch (e) {
+        return undefined;
+      }
+    }
+  }
+
   //-------------------------------------------
   // User
   //-------------------------------------------
@@ -19,145 +69,59 @@
 
 
   function remove(removeCallBack) {
-    jQuery.ajax({
-      url: window.crudURL + '/' + this.id,
-      type: 'DELETE',
-      dataType: 'json',
-      success: function () {
-        removeCallBack(undefined);
-      }
-    }).fail(function (error) {
+    UTILS.sendDelete(window.crudURL + '/' + this.id, function (error) {
       removeCallBack(error);
     });
   };
 
 
   function save(saveCallback) {
-
     var thisUser = this;
 
     console.log(this);
     if (this.id) {
-      $.ajax({
-        url: window.crudURL + '/' + this.id,
-        type: 'PUT',
-        contentType: 'application/json',
-        dataType: 'json',
-        data: JSON.stringify(thisUser),
-        processData: false,
-        success: function (responseObj) {
-          saveCallback(undefined);
-
-          if (thisUser.role == 'Admin') {
-            $.ajax({
-              url: window.crudURL + '/refreshAdmins',
-              type: 'GET'
-            });
-          }
-        }
-      }).fail(function (error) {
-        saveCallback(error)
-      });
+      UTILS.sendPut(window.crudURL + '/' + this.id,
+        thisUser,
+        function (error, data) {
+          saveCallback(error);
+        });
     } else {
-      $.ajax({
-        url: window.crudURL,
-        type: 'POST',
-        contentType: 'application/json',
-        dataType: 'json',
-        processData: false,
-        data: JSON.stringify(thisUser),
-        success: function (responseObj) {
 
-          $.extend(thisUser, responseObj);
-
-          // for admin
-
-          saveCallback(undefined);
-        }
-      }).fail(function (error) {
-        saveCallback(error)
-      });
+      UTILS.sendPost(window.crudURL,
+        thisUser,
+        function (error, data) {
+          if (!error) {
+            thisUser.id = data.id;
+          }
+          saveCallback(error);
+        });
     }
   };
 
-  function safeJSONparse(line) {
-    try {
-      return JSON.parse(line);
-    } catch (e) {
-      return undefined;
+  function toUserObjects(data) {
+    var res = [];
+    if (!data) {
+      return res;
     }
+    for (var i = 0; i < data.length; i++) {
+      var currentData = data[i];
+
+      if (currentData.role === 'Administrator') {
+        currentData.role = 'Admin';
+      }
+      var user = new window[currentData.role](currentData);
+      res.push(user);
+    }
+
+    return res;
   }
 
   function load(loadCallback) {
-    //var request = new XMLHttpRequest();
-    //request.open('GET', window.crudURL);
-    //request.setRequestHeader('Content-type', 'application/json');
-    ////if (headers) {
-    ////  for (index in headers) {
-    ////    if (index) {
-    ////      request.setRequestHeader(index, headers[index]);
-    ////    }
-    ////  }
-    ////}
-    //
-    //request.addEventListener('readystatechange', function addEventListenerCb1() {
-    //  var data;
-    //  var res = [];
-    //  if (request.readyState === request.DONE) {
-    //    if (request.responseText) {
-    //
-    //      data = safeJSONparse(request.responseText);
-    //      for (var i = 0; i < data.length; i++) {
-    //        var currentData = data[i];
-    //
-    //        //if (window[currentData.role]) {
-    //        console.log("ISD " + currentData.role);
-    //        if (currentData.role === 'Administrator') {
-    //          currentData.role = 'Admin';
-    //        }
-    //        var user = new window[currentData.role](currentData);
-    //        res.push(user);
-    //      }
-    //      //}
-    //    }
-    //
-    //    if (loadCallback) {
-    //      loadCallback && loadCallback(request.status !== 200, res);
-    //    }
-    //  }
-    //});
-    //
-    //request.send();
-
-
-    $.ajax({
-        url: window.crudURL,
-        type: 'GET',
-        contentType: 'application/json',
-        headers: {
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-        },
-        success: function (data) {
-          var res = [];
-          for (var i = 0; i < data.length; i++) {
-            var currentData = data[i];
-
-            //if (window[currentData.role]) {
-              console.log("ISD " + currentData.role);
-              if (currentData.role === 'Administrator') {
-                currentData.role = 'Admin';
-              }
-              var user = new window[currentData.role](currentData);
-              res.push(user);
-            }
-          //}
-
-          loadCallback && loadCallback(undefined, res);
-        }
+    UTILS.sendGet(window.crudURL, function (error, data) {
+      if (loadCallback) {
+        loadCallback(error, toUserObjects(data));
       }
-    ).fail(function (error) {
-        loadCallback && loadCallback(error, undefined)
-      });
+    });
   };
 
 //-------------------------------------------
@@ -212,14 +176,27 @@
 
   Admin.prototype = Object.create(User.prototype);
   Admin.prototype.save = function adminSave(saveCallback) {
-    User.prototype.save.call(this, saveCallback);
+    var user = this;
+    User.prototype.save.call(this, function (error) {
 
-    $.ajax({
-      url: window.crudURL + '/refreshAdmins',
-      type: 'GET',
-      contentType: 'application/json',
-      dataType: 'json',
-      processData: false
+      saveCallback(error);
+
+      var arr = window.crudURL.split("/");
+      var address = arr[0] + "//" + arr[2] + '/refreshAdmins';
+      //var address = window.crudURL + '/refreshAdmins';
+
+      //var parser = document.createElement('a');
+      //parser.href = window.crudURL;
+      //var address = parser.protocol + '//' + parser.host + '/refreshAdmins';
+
+      UTILS.sendGet(address, user);
+      //$.ajax({
+      //  url: arr[0] + "//" + arr[2] + '/refreshAdmins',
+      //  type: 'GET',
+      //  contentType: 'application/json',
+      //  dataType: 'json',
+      //  processData: false
+      //});
     });
   };
 //-------------------------------------------
