@@ -13,13 +13,15 @@
             data = UTILS.safeJSONparse(request.responseText);
           }
 
-          var isError = request.status !== 200 && request.status !== 204;
-          callback && callback(isError, data);
+          if (callback) {
+            var isError = request.status !== 200 && request.status !== 204;
+            callback(isError, data);
+          }
         }
       });
 
       if(data) {
-        request.send(UTILS.safeJSONparse(data));
+        request.send(UTILS.safeJSONstringify(data));
       }else {
         request.send();
       }
@@ -41,10 +43,17 @@
       UTILS.send(address, 'DELETE', undefined, callback);
     },
 
-
     safeJSONparse: function safeJSONparse(line) {
       try {
         return JSON.parse(line);
+      } catch (e) {
+        return undefined;
+      }
+    },
+
+    safeJSONstringify: function safeJSONstringify(line) {
+      try {
+        return JSON.stringify(line);
       } catch (e) {
         return undefined;
       }
@@ -165,7 +174,6 @@
 //-------------------------------------------
   function Admin(data) {
     console.log("ISD Admin");
-    //$.extend(this, data);
 
     User.call(this, data);
 
@@ -177,26 +185,18 @@
   Admin.prototype = Object.create(User.prototype);
   Admin.prototype.save = function adminSave(saveCallback) {
     var user = this;
+
+    delete user.location;
+    delete user.strikes;
+
     User.prototype.save.call(this, function (error) {
 
+      var parser = document.createElement('a');
+      parser.href = window.crudURL;
+      var address = parser.protocol + '//' + parser.host + '/refreshAdmins';
+      UTILS.sendGet(address);
+
       saveCallback(error);
-
-      var arr = window.crudURL.split("/");
-      var address = arr[0] + "//" + arr[2] + '/refreshAdmins';
-      //var address = window.crudURL + '/refreshAdmins';
-
-      //var parser = document.createElement('a');
-      //parser.href = window.crudURL;
-      //var address = parser.protocol + '//' + parser.host + '/refreshAdmins';
-
-      UTILS.sendGet(address, user);
-      //$.ajax({
-      //  url: arr[0] + "//" + arr[2] + '/refreshAdmins',
-      //  type: 'GET',
-      //  contentType: 'application/json',
-      //  dataType: 'json',
-      //  processData: false
-      //});
     });
   };
 //-------------------------------------------
