@@ -216,6 +216,13 @@
       $('.row .redcard ul'),
       $('.row .removed ul'));
 
+
+    $( '.row .active ul, .row .redcard ul, .row .removed ul' ).sortable({
+      connectWith: ".row .active ul, .row .redcard ul, .row .removed ul",
+      dropOnEmpty: false
+    }).disableSelection();
+
+
     studentStorage.load();
   }
 //-------------------------------------------
