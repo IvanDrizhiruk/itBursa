@@ -25,3 +25,7 @@ ul li {
     height: 50px;
     background-color: lightyellow;
 }
+
+.col-md-4 {
+    min-height: 100px;
+}

@@ -113,8 +113,6 @@
     }
   }
 
-//Student.prototype.remove = remove;
-//Student.prototype.save = save;
   Student.load = load;
 
   function load(callback) {
@@ -147,20 +145,21 @@
       }
       var box = elements[student.status];
       if (box) {
-        box.append(generateStudentElement(student.name, student.telephone));
+        box.append(generateStudentElement(student.id, student.name, student.phone));
       }
     }
 
-    function generateStudentElement(name, telephone) {
+    function generateStudentElement(id, name, phone) {
       var li = document.createElement('li');
       var nameH3 = document.createElement('h3');
-      var telephoneH4 = document.createElement('h4');
+      var phoneH4 = document.createElement('h4');
 
+      $(li).data('data.id', id);
       nameH3.innerHTML = name;
-      telephoneH4.innerHTML = telephone;
+      phoneH4.innerHTML = phone;
 
       li.appendChild(nameH3);
-      li.appendChild(telephoneH4);
+      li.appendChild(phoneH4);
 
       return li;
     }
@@ -177,10 +176,17 @@
 
     function StudentStorage(dispatcherObj) {
       dispatcher = dispatcherObj;
-      this.items = [];
+      this.iteams = {
+        active: [],
+        redcard: [],
+        removed: []
+      };
+
+      dispatcher.on('student.moved', this.move.bind(this));
     }
 
     StudentStorage.prototype.load = load;
+    StudentStorage.prototype.move = move;
 
     function load() {
       var _this = this;
@@ -190,12 +196,94 @@
           alert('Error');
           return;
         }
+
+        console.log("ISD start + "  + list.length);
+        var prevStudentStr = localStorage.getItem('students');
+        var prevStudent = UTILS.safeJSONparse(prevStudentStr)
+
+        if (prevStudent) {
+          prevStudent.active.forEach(function (e) {
+            console.log("ISD prevStudent.active");
+            marge(e, list, _this);
+          });
+          prevStudent.redcard.forEach(function (e) {
+            console.log("ISD prevStudent.redcard");
+            marge(e, list, _this);
+          });
+          prevStudent.removed.forEach(function (e) {
+            console.log("ISD prevStudent.removed");
+            marge(e, list, _this);
+          });
+        }
+
+        console.log("ISD list + "  + list.length);
         list.forEach(function (item) {
-          _this.items.push(new Student(item));
+          //_this.iteams.push(new Student(item));
+          _this.iteams[item.status].push(new Student(item));
           dispatcher.fire('student.add', item);
         });
+
       });
+    };
+
+    function marge(historyItem, list, _this) {
+
+      var e = _.find(list, function (res) {
+        return res.id === historyItem.id;
+      });
+
+      if (e && e.status !== historyItem.status) {
+        console.log("ISD " + historyItem.status + ">>>" + e.status);
+        return;
+      }
+
+      _.remove(list, function (res) {
+        return res.id === historyItem.id;
+      });
+
+      if (e) {
+        _this.iteams[e.status].push(new Student(e));
+        dispatcher.fire('student.add', e);
+
+      }
     }
+
+    function saveToStorage(iteams) {
+      console.log('----');
+      console.log(iteams.redcard);
+      localStorage.setItem('students', UTILS.safeJSONstringify(iteams));
+
+    }
+
+    function copyStudent(toObj, fromObj) {
+      console.log(JSON.stringify({from: fromObj, to: toObj}));
+      //$.extend(toObj, fromObj);
+      //console.log({from: fromObj, to: toObj});
+
+      toObj.id = fromObj.id;
+      toObj.name = fromObj.name;
+      toObj.phone = fromObj.phone;
+    }
+
+    function move(move) {
+      var containerFrom = this.iteams[move.from.status];
+      var containerTo = this.iteams[move.to.status];
+      if (move.from.status === move.to.status) {
+
+        var tmp = containerFrom.splice(move.from.index, 1);
+        var x = move.from.index > move.to.index ? 0 : 1;
+        containerTo.splice(move.to.index - x, 0, tmp[0]);
+
+
+      } else  {
+
+        var tmp = containerFrom.splice(move.from.index, 1);
+        tmp[0].status = move.to.status;
+        containerTo.splice(move.to.index, 0, tmp[0]);
+      }
+
+      saveToStorage(this.iteams);
+    };
 
     //-------------------------------------------
     window.StudentStorage = StudentStorage;
@@ -219,8 +307,56 @@
 
     $( '.row .active ul, .row .redcard ul, .row .removed ul' ).sortable({
       connectWith: ".row .active ul, .row .redcard ul, .row .removed ul",
-      dropOnEmpty: false
-    }).disableSelection();
+      start: function(event, ui) {
+        ui.item.data('start_pos', {
+          index: ui.item.index(),
+          status: extractContainerType(ui.item)});
+      },
+      update: function(event, ui) {
+        if (this !== ui.item.parent()[0]) {
+          return;
+        }
+
+        var id = ui.item.data('data.id');
+        var moveFrom = ui.item.data('start_pos');
+        var moveTo = {index: ui.item.index(), status: extractContainerType(ui.item)};
+
+        if(moveFrom.status === 'removed' && moveTo.status !== 'removed') {
+          $(ui.sender).sortable('cancel');
+          return;
+        }
+
+        if (moveFrom.status === moveTo.status) {
+          $(ui.sender).sortable('cancel');
+          dispatcher.fire('student.moved', {from: moveFrom, to: moveTo});
+          return;
+        }
+
+        UTILS.sendPost(
+          window.url + '/' + id,
+          {status: moveTo.status}, function (data, isError) {
+            if (isError) {
+              $(ui.sender).sortable('cancel');
+            } else {
+              dispatcher.fire('student.moved', {from: moveFrom, to: moveTo});
+            }
+          });
+      }
+    });
+
+    function extractContainerType(element) {
+      var container = element.closest('div.col-md-4');
+
+      if(container.hasClass('active')) {
+        return 'active';
+      } else if(container.hasClass('redcard')) {
+        return 'redcard';
+      } else if(container.hasClass('removed')) {
+        return 'removed';
+      } else {
+        return undefined;
+      }
+    }
 
 
     studentStorage.load();
