@@ -165,8 +165,8 @@ angular.module("jsbursa")
               console.log(ui.item.index());
 
 
-              //scope.$applyAsync();
-
+              scope.items = angular.copy(scope.items);
+              scope.$applyAsync();
 
               if (elementId) {
                 localStorage.setItem(elementId, JSON.stringify(scope.items));
