@@ -61,8 +61,8 @@ angular.module("jsbursa")
   }])
 
 
-// CODE FOR CHECKER
-angular.module("jsbursa", [])
+// CODE FOR CHECKER (remove next comment)
+//angular.module("jsbursa", [])
 
 function resort(items, stored) {
   if (! stored) {
