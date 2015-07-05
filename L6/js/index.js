@@ -30,39 +30,39 @@ angular.module("jsbursa")
         "status": "removed"
       }];
 
-    $scope.students2 = [
-      {
-        "id": "5",
-        "name": "1",
-        "phone": "(466) 514-6617",
-        "status": "redcard"
-      }
-      ,
-      {
-        "id": "6",
-        "name": "2t",
-        "phone": "(314) 333-4959",
-        "status": "removed"
-      },
-      {
-        "id": "7",
-        "name": "3",
-        "phone": "(686) 869-6077",
-        "status": "removed"
-      }
-      ,
-      {
-        "id": "8",
-        "name": "4",
-        "phone": "(328) 747-6780",
-        "status": "removed"
-      }];
+    //$scope.students2 = [
+    //  {
+    //    "id": "5",
+    //    "name": "1",
+    //    "phone": "(466) 514-6617",
+    //    "status": "redcard"
+    //  }
+    //  ,
+    //  {
+    //    "id": "6",
+    //    "name": "2t",
+    //    "phone": "(314) 333-4959",
+    //    "status": "removed"
+    //  },
+    //  {
+    //    "id": "7",
+    //    "name": "3",
+    //    "phone": "(686) 869-6077",
+    //    "status": "removed"
+    //  }
+    //  ,
+    //  {
+    //    "id": "8",
+    //    "name": "4",
+    //    "phone": "(328) 747-6780",
+    //    "status": "removed"
+    //  }];
 
   }])
 
 
-
-//angular.module("jsbursa", [])
+// CODE FOR CHECKER
+angular.module("jsbursa", [])
 
 function resort(items, stored) {
   if (! stored) {
@@ -107,6 +107,10 @@ angular.module("jsbursa")
                   '</li>' +
                 '</ul>',
       link: function (scope, element, attrs) {
+
+        if(!scope.items) {
+          scope.items = [];
+        }
 
         var elementId = attrs.id;
 
