@@ -165,7 +165,7 @@ angular.module("jsbursa")
               console.log(ui.item.index());
 
 
-              scope.$applyAsync();
+              //scope.$applyAsync();
 
 
               if (elementId) {
