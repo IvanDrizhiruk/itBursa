@@ -2,13 +2,21 @@ var http = require('http');
 var url = require('url');
 
 var users = [
-  { id: '1', name: 'Illya Klymov', phone: '+380504020799', role: 'Administrator' },
-  { id: '2', name: 'Ivanov Ivan',  phone: '+380670000002', role: 'Student',      strikes: 1 },
-  { id: '3', name: 'Petrov Petr',  phone: '+380670000001', role: 'Support',      location: 'Kiev' }
+  { id: 1, name: 'Illya Klymov', phone: '+380504020799', role: 'Administrator' },
+  { id: 2, name: 'Ivanov Ivan',  phone: '+380670000002', role: 'Student',      strikes: 1 },
+  { id: 3, name: 'Petrov Petr',  phone: '+380670000001', role: 'Support',      location: 'Kiev' }
 
 ];
 
 var lastid = 3;
+
+
+var responseHeaders = {
+  'Access-Control-Allow-Headers': 'content-type',
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Methods': 'GET,HEAD,PUT,POST,DELETE',
+  'Access-Control-Allow-Origin': '*'
+};
 
 function getNewId() {
   lastid++;
@@ -29,12 +37,28 @@ var server = http.createServer(function (req, resp) {
 
   console.log(req.url);
 
-  if(-1 == req.url.indexOf('/api/users')) {
-    resp.statusCode = 404;
+  if(req.method == 'GET'
+    && req.url == '/refreshAdmins') {
+
+    //resp.setHeader('Access-Control-Allow-Origin',"*");
+    //resp.setHeader('Access-Control-Allow-Methods',"GET,HEAD,PUT,POST,DELETE");
+    //resp.setHeader('Content-Type', 'application/json');
+    //resp.statusCode = 200;
+    resp.writeHead(200, responseHeaders);
     resp.end();
 
     return;
   }
+
+
+  //if(-1 == req.url.indexOf('/api/users')
+  //  && -1 == req.url.indexOf('/refreshAdmins')
+  //) {
+  //  resp.statusCode = 404;
+  //  resp.end('Not Found');
+  //
+  //  return;
+  //}
 
   //if (req.method !== 'OPTIONS') {
   //  var contentType = req.headers['content-type'];
@@ -56,6 +80,7 @@ var server = http.createServer(function (req, resp) {
 
   switch(req.method) {
     case 'GET':
+
       var contentType = req.headers['content-type'];
       console.log("ISD " + contentType);
       if ('application/json' !== contentType) {
@@ -70,12 +95,47 @@ var server = http.createServer(function (req, resp) {
       resp.end(JSON.stringify(users));
       break;
     case 'POST':
+      var contentType = req.headers['content-type'];
+      console.log("ISD " + contentType);
+      if ('application/json' !== contentType) {
+        resp.statusCode = 401;
+        resp.end();
+        return;
+      }
+
+      if (userId) {
+        resp.statusCode = 404;
+        resp.end();
+        return;
+      }
+
       var body = '';
       req.on('data', function (data) {
         body += data;
       });
       req.on('end', function () {
         var user = JSON.parse(body);
+
+        if (!user.role) {
+          user.role = 'Student';
+        }
+
+        if ( user.role != 'Admin'
+          && user.role != 'Support'
+          && user.role != 'Student') {
+          resp.statusCode = 401;
+          resp.end();
+          return;
+        }
+
+        else if (
+          user.role != 'Admin'
+          && user.role != 'Support'
+          && user.role != 'Student') {
+          resp.statusCode = 401;
+          resp.end();
+          return;
+        }
 
         user.id = getNewId();
 
@@ -85,29 +145,82 @@ var server = http.createServer(function (req, resp) {
       });
       break;
     case 'PUT':
+      var contentType = req.headers['content-type'];
+      console.log("ISD " + contentType);
+      if ('application/json' !== contentType) {
+        resp.statusCode = 401;
+        resp.end();
+        return;
+      }
+
+      if (!userId) {
+        resp.statusCode = 404;
+        resp.end();
+        return;
+      }
+
+
       var body = '';
       req.on('data', function (data) {
         body += data;
       });
       req.on('end', function () {
         var user = JSON.parse(body);
+
+        if(!user || !user.id) {
+          resp.statusCode = 404;
+          resp.end();
+          return;
+        }
+
         var index = getIndex(users, user.id);
         console.log('index = > ' + index);
-        users[index].name = user.name;
-        users[index].phone = user.phone;
 
-        resp.end(JSON.stringify(users[index]));
+
+        if (-1 == index) {
+          resp.statusCode = 404;
+          resp.end();
+        } else {
+          users[index].name = user.name;
+          users[index].phone = user.phone;
+          resp.end(JSON.stringify(users[index]));
+        }
+
       });
       break;
     case 'DELETE':
+
+      var contentType = req.headers['content-type'];
+      console.log("ISD " + contentType);
+      if ('application/json' !== contentType) {
+        resp.statusCode = 401;
+        resp.end();
+        return;
+      }
+
+      if (!userId) {
+        resp.statusCode = 404;
+        resp.end();
+        return;
+      }
+
       console.log("ISD DELETE");
       var index = getIndex(users, userId);
-      users.splice(index, 1);
+
+      console.log("ISD DELETE " + index);
 
 
-      console.log(users);
+      if (-1 == index) {
+        resp.statusCode = 404;
+      } else {
+        users.splice(index, 1);
+        resp.statusCode = 204;
+      }
 
+      resp.setHeader('Content-Type', 'application/json');
+      resp.setHeader('Access-Control-Allow-Headers',"content-type");
       resp.end();
+      return;
 
       break;
     case 'OPTIONS':
