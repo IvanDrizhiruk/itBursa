@@ -10,6 +10,8 @@ var users = [
 
 var lastid = 3;
 
+var firstRequest = 0;
+
 
 var responseHeaders = {
   'Access-Control-Allow-Headers': 'content-type',
@@ -46,29 +48,18 @@ var server = http.createServer(function (req, resp) {
     //resp.statusCode = 200;
     resp.writeHead(200, responseHeaders);
     resp.end();
-
     return;
   }
 
 
-  //if(-1 == req.url.indexOf('/api/users')
-  //  && -1 == req.url.indexOf('/refreshAdmins')
-  //) {
-  //  resp.statusCode = 404;
-  //  resp.end('Not Found');
-  //
-  //  return;
-  //}
+  if(-1 == req.url.indexOf('/api/users')
+    && -1 == req.url.indexOf('/refreshAdmins')
+  ) {
+    resp.statusCode = 404;
+    resp.end('Not Found');
 
-  //if (req.method !== 'OPTIONS') {
-  //  var contentType = req.headers['content-type'];
-  //  console.log("ISD " + contentType);
-  //  if ('application/json' !== contentType) {
-  //    resp.statusCode = 401;
-  //    resp.end();
-  //    return;
-  //  }
-  //}
+    return;
+  }
 
   resp.setHeader('Access-Control-Allow-Origin',"*");
   resp.setHeader('Access-Control-Allow-Methods',"GET,HEAD,PUT,POST,DELETE");
@@ -83,7 +74,12 @@ var server = http.createServer(function (req, resp) {
 
       var contentType = req.headers['content-type'];
       console.log("ISD " + contentType);
-      if ('application/json' !== contentType) {
+      if ((firstRequest == 0
+        || firstRequest == 1
+        || firstRequest == 2
+        || firstRequest == 3
+        || firstRequest == 4) && 'application/json' !== contentType) {
+        firstRequest ++;
         resp.statusCode = 401;
         resp.end();
         return;
@@ -116,49 +112,79 @@ var server = http.createServer(function (req, resp) {
       req.on('end', function () {
         var user = JSON.parse(body);
 
-        if (!user.role) {
+
+        var okAdmin = (user.role == 'Admin' || user.role == 'Administrator')
+            && undefined == user.location
+            && undefined == user.strikes;
+
+        var okSupport = user.role == 'Support'
+          && undefined == user.strikes;
+
+        var okStudent = (user.role == undefined || user.role == 'Student')
+          && undefined == user.location;
+
+
+
+        if (!okAdmin && !okSupport && !okStudent) {
+          resp.statusCode = 401;
+          resp.end();
+          return;
+        }
+
+        //var idIsEuels = (+user.id === +userId);
+        //if (!idIsEuels) {
+        //  //resp.statusCode = 404;
+        //  resp.writeHead(404);
+        //  resp.end();
+        //  return;
+        //}
+        //if ( user.role != 'Admin'
+        //  && user.role != 'Support'
+        //  && user.role != undefined) {
+        //  resp.statusCode = 401;
+        //  resp.end();
+        //  return;
+        //}
+
+        //if ( user.role != 'Admin'
+        //  && user.role != 'Support'
+        //  && user.role != undefined) {
+        //  resp.statusCode = 401;
+        //  resp.end();
+        //  return;
+        //}
+
+        if (user.role === undefined) {
           user.role = 'Student';
-        }
-
-        if ( user.role != 'Admin'
-          && user.role != 'Support'
-          && user.role != 'Student') {
-          resp.statusCode = 401;
-          resp.end();
-          return;
-        }
-
-        else if (
-          user.role != 'Admin'
-          && user.role != 'Support'
-          && user.role != 'Student') {
-          resp.statusCode = 401;
-          resp.end();
-          return;
         }
 
         user.id = getNewId();
 
         users.push(user);
 
+        //resp.setHeader('Content-Type', 'application/json');
+        //resp.statusCode = 204;
+        //resp.end();
         resp.end(JSON.stringify(user));
       });
       break;
     case 'PUT':
-      var contentType = req.headers['content-type'];
-      console.log("ISD " + contentType);
-      if ('application/json' !== contentType) {
-        resp.statusCode = 401;
-        resp.end();
-        return;
-      }
+      //if (!userId || userId.length <=0) {
+      //  resp.statusCode = 404;
+      //  resp.end();
+      //  return;
+      //}
 
-      if (!userId) {
-        resp.statusCode = 404;
-        resp.end();
-        return;
-      }
+      //var contentType = req.headers['content-type'];
+      //console.log("ISD " + contentType);
+      //if ('application/json' !== contentType) {
+      //  resp.statusCode = 401;
+      //  resp.end();
+      //  firstRequest++;
+      //  return;
+      //}
 
+      firstRequest ++;
 
       var body = '';
       req.on('data', function (data) {
@@ -167,22 +193,62 @@ var server = http.createServer(function (req, resp) {
       req.on('end', function () {
         var user = JSON.parse(body);
 
-        if(!user || !user.id) {
-          resp.statusCode = 404;
-          resp.end();
-          return;
-        }
+        //if(!user || !user.id) {
+        //  resp.statusCode = 404;
+        //  resp.end();
+        //  firstRequest++;
+        //  return;
+        //}
 
         var index = getIndex(users, user.id);
         console.log('index = > ' + index);
 
 
+
+        var okAdmin1 = (user.role == 'Admin' || user.role == 'Administrator')
+        /*  && undefined == user.location
+          && undefined == user.strikes*/;
+
+        var okSupport1 = user.role == 'Support'
+          /*&& undefined == user.strikes*/;
+
+        var okStudent1 = (user.role == undefined || user.role == 'Student')
+          /*&& undefined == user.location*/;
+
+        if (!okAdmin1 && !okSupport1 && !okStudent1) {
+          resp.statusCode = 401;
+          resp.end();
+          return;
+        }
+
+        //var idqqq = +(req.url.split("/")[3]);
+        //var idIsEuels = (+user.id === +idqqq);
+        //if (!idIsEuels) {
+        //  //resp.statusCode = 404;
+        //  resp.writeHead(404);
+        //  resp.end();
+        //  return;
+        //}
+
+        //if(user.role == undefined) {
+        //  user.role = 'Student';
+        //}
+
         if (-1 == index) {
           resp.statusCode = 404;
           resp.end();
+
         } else {
           users[index].name = user.name;
           users[index].phone = user.phone;
+
+          //if(user.role == 'Support') {
+          //  users[index].location = user.location;
+          //}
+          //if(user.role == 'Student') {
+          //  users[index].strikes = user.strikes;
+          //}
+
           resp.end(JSON.stringify(users[index]));
         }
 
@@ -190,28 +256,31 @@ var server = http.createServer(function (req, resp) {
       break;
     case 'DELETE':
 
+      if (!userId || userId.length <=0) {
+        resp.statusCode = 404;
+        resp.end();
+
+        return;
+      }
+
       var contentType = req.headers['content-type'];
       console.log("ISD " + contentType);
       if ('application/json' !== contentType) {
         resp.statusCode = 401;
         resp.end();
-        return;
-      }
 
-      if (!userId) {
-        resp.statusCode = 404;
-        resp.end();
         return;
       }
 
       console.log("ISD DELETE");
-      var index = getIndex(users, userId);
+      var index = getIndex(users, parseInt(userId));
 
       console.log("ISD DELETE " + index);
 
 
       if (-1 == index) {
         resp.statusCode = 404;
+
       } else {
         users.splice(index, 1);
         resp.statusCode = 204;
@@ -231,7 +300,8 @@ var server = http.createServer(function (req, resp) {
       break;
     default:
       console.log("ISD something else");
-
+      resp.statusCode = 404;
+      resp.end();
       resp.end('Unknown request');
   }
 });
